@@ -2,6 +2,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+// 1. O Evento de Domínio (Criado como um 'record' do Java para ser imutável)
+public record ConsultaAgendadaEvent(UUID consultaId, UUID petId, UUID veterinarioId, LocalDateTime dataHorario) {}
+public record ConsultaCanceladaEvent(UUID consultaId, String motivo) {}
+
 @Entity
 @Table(name = "consultas")
 public class Consulta {
@@ -70,6 +74,16 @@ public class Consulta {
     public UUID getPetId() { return petId; }
     public UUID getVeterinarioId() { return veterinarioId; }
     public StatusConsulta getStatus() { return status; }
+    
+    public void cancelar(String motivo) {
+        if (this.status == StatusConsulta.REALIZADA) {
+            throw new IllegalStateException("Não é possível cancelar uma consulta já realizada.");
+        }
+        this.status = StatusConsulta.CANCELADA;
+
+        // Registra o evento de cancelamento
+        registerEvent(new ConsultaCanceladaEvent(this.id, motivo));
+    }
 }
 
 enum StatusConsulta {
